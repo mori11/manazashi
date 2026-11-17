@@ -98,7 +98,7 @@
 <div class="hud" id="meter"><div id="acts"><span data-a="voice">声</span><span data-a="smile">笑</span><span data-a="lift">昇</span><span data-a="zoom">潜</span></div><div id="dots"></div><div id="modeLabel">—</div></div>
 <div class="hud" id="keys">P 一時停止　S 消音　Q 終了<br>1 声　2 笑顔　3 上昇　4 流れ星（長押し可）<br>SPACE 転調　C 再調整　V カメラ表示　D 診断<br>M 視線/マウス　F 全画面　H 表示切替</div>
 <div class="hud" id="hint"></div>
-<div class="hud" id="ctrl"><button id="btnPause"></button><button id="btnMute"></button><button id="btnQuit"></button></div>
+<div class="hud" id="ctrl"><button id="btnPause"></button><button id="btnMute"></button><button id="btnCamOff"></button><button id="btnQuit"></button></div>
 <div id="pause"><div>一時停止中<small>クリックまたは P キーで再開</small></div></div>
 <div id="flash"></div>
 <div id="diag"></div>
@@ -357,6 +357,7 @@ async function startCamera(){
     const stream=await navigator.mediaDevices.getUserMedia({video:{width:{ideal:1280},height:{ideal:720},frameRate:{ideal:30},facingMode:'user'},audio:false});
     video.srcObject=stream;await video.play();
   }
+  camLabel();
   status('');
 }
 function features(res){
@@ -516,6 +517,8 @@ const ICON={
   sound:svg(SPK+'<path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/>'),
   pause:svg('<rect class="f" x="6" y="5" width="4" height="14" rx="1"/><rect class="f" x="14" y="5" width="4" height="14" rx="1"/>'),
   play:svg('<path class="f" d="M7 4.5v15l12-7.5z"/>'),
+  camOff:svg('<path d="M10 7h3a2 2 0 0 1 2 2v2l6-3.5v9l-4-2.3M15 17H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2"/><path d="m3 3 18 18"/>'),
+  cam:svg('<rect class="f" x="3" y="7" width="12" height="10" rx="2"/><path class="f" d="m15 11 6-3.5v9L15 13z"/>'),
   close:svg('<path d="m6 6 12 12M18 6 6 18"/>')};
 const label=(id,icon,text)=>{$(id).innerHTML=ICON[icon]+'<span>'+text+'</span>'};
 label('#btnPause','pause','一時停止');label('#btnMute','mute','音を消す');label('#btnQuit','close','終了');
@@ -529,10 +532,23 @@ function setPause(p){
   $('#pause').classList.toggle('on',p);label('#btnPause',p?'play':'pause',p?'再開':'一時停止');
   document.body.classList.toggle('ui',p);
 }
+function camLabel(){const on=!!video.srcObject;label('#btnCamOff',on?'camOff':'cam',on?'カメラをオフ':'カメラをオン')}
+function stopCam(){
+  if(video.srcObject){video.srcObject.getTracks().forEach(t=>t.stop());video.srcObject=null}
+  video.classList.remove('show','bad','big','ok');S.det=0;camLabel();
+}
+async function toggleCam(){
+  if(video.srcObject){
+    if(S.mode!=='play'){quit();return}
+    stopCam();S.input='mouse';beginPlay();flash('カメラをオフにしました');return;
+  }
+  if(S.mode!=='play')return;
+  try{initAudio();await startCamera();camLabel();if(model){S.input='gaze';beginPlay()}else await calibrate()}
+  catch(err){console.error(err);stopCam();S.input='mouse';S.mode='play';beginPlay();flash('カメラを開始できませんでした')}
+}
 function quit(){
   setPause(false);if(ac)ac.suspend();
-  if(video.srcObject){video.srcObject.getTracks().forEach(t=>t.stop());video.srcObject=null}
-  video.classList.remove('show','bad','big','ok');
+  stopCam();
   S.mode='intro';S.input='mouse';S.collect=null;stars=[];events.length=0;ripples.length=0;parts.length=0;
   S.energy=0;S.reso=0;S.resoOn=false;S.still=0;shots.length=0;S.wheel=0;S.downAt=0;
   document.body.classList.remove('playing');document.body.classList.add('ui');
@@ -540,7 +556,8 @@ function quit(){
 }
 $('#btnPause').onclick=e=>{setPause(!S.paused);e.currentTarget.blur()};
 $('#btnMute').onclick=e=>{setMute(!S.muted);e.currentTarget.blur()};
-$('#btnQuit').onclick=quit;
+$('#btnQuit').onclick=quit;camLabel();
+$('#btnCamOff').onclick=e=>{e.currentTarget.blur();toggleCam()};
 $('#pause').onclick=()=>setPause(false);
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.mode==='play'&&!S.paused)setPause(true)});
 let camVisible=true,diagOn=false;
@@ -559,8 +576,8 @@ addEventListener('keydown',async e=>{
   else if(k==='c'&&S.mode==='play'&&landmarker&&video.srcObject)calibrate();
   else if(k==='m'&&S.mode==='play'){
     if(S.input==='gaze'){S.input='mouse';beginPlay()}
-    else if(model){S.input='gaze';beginPlay()}
-    else{try{initAudio();await startCamera();await calibrate()}catch(err){console.error(err);S.mode='play'}}
+    else if(model&&video.srcObject){S.input='gaze';beginPlay()}
+    else toggleCam();
   }
 });
 
