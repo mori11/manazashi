@@ -69,6 +69,13 @@
     transform:translate(-50%,-50%) scaleX(-1);border:3px solid #ff6b6b;transition:border-color .2s,box-shadow .2s}
   #cam.big.ok{border-color:#5dffa0;box-shadow:0 0 40px rgba(93,255,160,.45)}
   #calibMsg.top{top:17%}
+  #ctrl{left:50%;top:14px;transform:translateX(-50%);display:none;gap:8px;pointer-events:auto;z-index:12;letter-spacing:.06em}
+  body.playing #ctrl{display:flex}
+  #ctrl button{padding:7px 14px;font-size:12px;white-space:nowrap}
+  #pause{position:fixed;inset:0;z-index:8;display:none;place-items:center;text-align:center;background:rgba(2,3,10,.6);
+    backdrop-filter:blur(6px);cursor:pointer;font-size:clamp(20px,3.4vw,34px);letter-spacing:.3em;line-height:2.2}
+  #pause.on{display:grid}
+  #pause small{display:block;font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:13px;letter-spacing:.12em;color:var(--dim)}
   #diag{position:fixed;left:22px;top:48px;z-index:7;font:12px/1.7 ui-monospace,Menlo,monospace;color:#bff;white-space:pre;
     background:rgba(0,0,0,.55);padding:10px 14px;border-radius:8px;display:none;pointer-events:none}
   #diag.on{display:block}
@@ -85,8 +92,10 @@
 <div class="hud" id="brand">MANAZASHI</div>
 <div class="hud" id="scene"><b id="sceneJa">深海</b><span id="sceneEn">ABYSS</span></div>
 <div class="hud" id="meter"><div id="dots"></div><div id="modeLabel">—</div></div>
-<div class="hud" id="keys">SPACE 転調　C 再調整　V カメラ表示　D 診断<br>M 視線/マウス　F 全画面　H 表示切替</div>
+<div class="hud" id="keys">P 一時停止　S 消音　Q 終了<br>SPACE 転調　C 再調整　V カメラ表示　D 診断<br>M 視線/マウス　F 全画面　H 表示切替</div>
 <div class="hud" id="hint"></div>
+<div class="hud" id="ctrl"><button id="btnPause">⏸ 一時停止</button><button id="btnMute">🔇 音を消す</button><button id="btnQuit">✕ 終了</button></div>
+<div id="pause"><div>一時停止中<small>クリックまたは P キーで再開</small></div></div>
 <div id="flash"></div>
 <div id="diag"></div>
 
@@ -133,11 +142,11 @@ const SCENES=[
 /* ================= state ================= */
 const S={mode:'intro',input:'mouse',gaze:{x:.5,y:.5},raw:{x:.5,y:.5},show:{x:.5,y:.5},
   move:0,speed:0,still:0,energy:0,reso:0,resoOn:false,shock:99,kick:0,level:0,roll:0,
-  scene:0,col:SCENES[0].col.map(c=>c.slice()),closed:false,closedAt:0,skipUntil:0,faceAt:0,collect:null,det:0,detFps:0,detN:0,detT:0,blink:0,quality:'—',cv:0,playT:99,detErr:''};
+  scene:0,col:SCENES[0].col.map(c=>c.slice()),closed:false,closedAt:0,skipUntil:0,faceAt:0,collect:null,paused:false,muted:false,det:0,detFps:0,detN:0,detT:0,blink:0,quality:'—',cv:0,playT:99,detErr:''};
 let W=innerWidth,H=innerHeight,DPR=Math.min(2,devicePixelRatio||1);
 
 /* ================= audio ================= */
-let ac,dry,revSend,dlySend,dly,padFilter,padGain,padDuck,padPan,subGain,subOsc,analyser,noiseBuf;
+let ac,master,dry,revSend,dlySend,dly,padFilter,padGain,padDuck,padPan,subGain,subOsc,analyser,noiseBuf;
 let padOsc=[],abuf;
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 const scn=()=>SCENES[S.scene];
@@ -146,7 +155,7 @@ function degToMidi(deg,base){const sc=scn().scale;return scn().root+base+sc[((de
 function initAudio(){
   if(ac){ac.resume();return}
   ac=new (window.AudioContext||window.webkitAudioContext)();
-  const master=ac.createGain();master.gain.value=.85;
+  master=ac.createGain();master.gain.value=S.muted?0:.85;
   const comp=ac.createDynamicsCompressor();comp.threshold.value=-14;comp.ratio.value=5;comp.attack.value=.004;comp.release.value=.2;
   master.connect(comp);comp.connect(ac.destination);
   analyser=ac.createAnalyser();analyser.fftSize=512;comp.connect(analyser);abuf=new Uint8Array(analyser.fftSize);
@@ -230,7 +239,7 @@ function whoosh(t){
 /* ---- sequencer ---- */
 let step=0,nextT=0;const events=[];
 function scheduler(){
-  if(!ac||S.mode!=='play')return;
+  if(!ac||S.mode!=='play'||S.paused)return;
   if(nextT<ac.currentTime)nextT=ac.currentTime+.05;
   while(nextT<ac.currentTime+.12){stepAt(step,nextT);nextT+=60/scn().bpm/4;step++}
 }
@@ -255,7 +264,7 @@ function stepAt(s,t){
   if(reso){const ch=scn().chord;bell(t,mtof(scn().root+36+ch[(s*3)%4]+(s16>7?12:0)),.22,Math.sin(s*.9)*.7,.35)}
 }
 function transpose(){
-  if(S.mode!=='play')return;
+  if(S.mode!=='play'||S.paused)return;
   S.scene=(S.scene+1)%SCENES.length;S.shock=0;
   if(ac){applyScene();const t=ac.currentTime+.01;whoosh(t);
     scn().chord.forEach((c,i)=>bell(t+.12+i*.07,mtof(scn().root+36+c),.7,(i-1.5)*.5,1.4));
@@ -432,6 +441,7 @@ function beginPlay(){
   S.mode='play';$('#intro').classList.add('off');document.body.classList.remove('ui');
   $('#modeLabel').textContent=S.input==='gaze'?'● 視線コントロール':'● マウスコントロール';
   video.classList.toggle('show',S.input==='gaze'&&camVisible);
+  document.body.classList.add('playing');
   if(!stars.length)initStars();hintT=0;if(S.input!=='gaze')S.playT=99;
 }
 $('#btnMouse').onclick=()=>{initAudio();S.input='mouse';beginPlay()};
@@ -443,13 +453,41 @@ $('#btnCam').onclick=async()=>{
       :'視線エンジンを開始できませんでした（'+(e&&e.message||e)+'）。マウスでお試しください。')}
 };
 addEventListener('pointermove',e=>{if(S.input==='mouse'){S.raw.x=e.clientX/W;S.raw.y=e.clientY/H}});
-addEventListener('pointerdown',e=>{if(S.mode==='play'&&S.input==='mouse'&&e.target.tagName!=='BUTTON')transpose()});
+addEventListener('pointerdown',e=>{if(S.mode==='play'&&S.input==='mouse'&&!S.paused&&e.target.tagName!=='BUTTON')transpose()});
+/* ---- mute / pause / quit ---- */
+function setMute(m){
+  S.muted=m;if(ac)master.gain.setTargetAtTime(m?0:.85,ac.currentTime,.03);
+  $('#btnMute').textContent=m?'🔈 音を出す':'🔇 音を消す';
+}
+function setPause(p){
+  if(p&&S.mode!=='play')return;
+  S.paused=p;if(ac)p?ac.suspend():ac.resume();
+  $('#pause').classList.toggle('on',p);$('#btnPause').textContent=p?'▶ 再開':'⏸ 一時停止';
+  document.body.classList.toggle('ui',p);
+}
+function quit(){
+  setPause(false);if(ac)ac.suspend();
+  if(video.srcObject){video.srcObject.getTracks().forEach(t=>t.stop());video.srcObject=null}
+  video.classList.remove('show','bad','big','ok');
+  S.mode='intro';S.input='mouse';S.collect=null;stars=[];events.length=0;ripples.length=0;parts.length=0;
+  S.energy=0;S.reso=0;S.resoOn=false;S.still=0;
+  document.body.classList.remove('playing');document.body.classList.add('ui');
+  $('#calib').classList.remove('on');$('#intro').classList.remove('off');$('#hint').textContent='';status('');
+}
+$('#btnPause').onclick=e=>{setPause(!S.paused);e.currentTarget.blur()};
+$('#btnMute').onclick=e=>{setMute(!S.muted);e.currentTarget.blur()};
+$('#btnQuit').onclick=quit;
+$('#pause').onclick=()=>setPause(false);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.mode==='play'&&!S.paused)setPause(true)});
 let camVisible=true,diagOn=false;
 addEventListener('keydown',async e=>{
   const k=e.key.toLowerCase();
   if(k===' '){e.preventDefault();transpose()}
   else if(k==='f'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}
   else if(k==='h')document.body.classList.toggle('nohud');
+  else if(k==='p')setPause(!S.paused);
+  else if(k==='s')setMute(!S.muted);
+  else if(k==='q'&&S.mode!=='intro')quit();
   else if(k==='d'){diagOn=!diagOn;$('#diag').classList.toggle('on',diagOn)}
   else if(k==='v'){camVisible=!camVisible;video.classList.toggle('show',S.input==='gaze'&&camVisible)}
   else if(k==='c'&&S.mode==='play'&&landmarker&&video.srcObject)calibrate();
@@ -588,6 +626,7 @@ const HINTS=['星をじっと見つめると、音が咲きます','視線をす
   'ゆっくり瞬き（またはSPACE）で、世界が転調します','星を6つ同時に咲かせると「共鳴」します','じっと一点を見つめ続けると、深みへ沈んでいきます',''];
 function frame(now){
   requestAnimationFrame(frame);
+  if(S.paused){lastT=now/1000;return}
   const t=now/1000,dt=clamp(t-lastT,.001,.05);lastT=t;
   if(S.mode!=='intro'&&video.srcObject)detect(now);
 
