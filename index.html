@@ -20,9 +20,9 @@
   .card{max-width:620px;text-align:center}
   h1{font-weight:400;font-size:clamp(34px,7vw,68px);letter-spacing:.32em;margin:0 0 0 .32em;
     background:linear-gradient(100deg,#9be8ff,#fff 45%,#d9a8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .sub{margin:14px 0 30px;font-size:clamp(15px,2.2vw,19px);letter-spacing:.2em;color:var(--dim)}
-  ul.how{list-style:none;margin:0 auto 30px;padding:0;display:grid;gap:10px;text-align:left;max-width:500px;
-    font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:14px;line-height:1.6;color:var(--dim)}
+  .sub{margin:10px 0 22px;font-size:clamp(15px,2.2vw,19px);letter-spacing:.2em;color:var(--dim)}
+  ul.how{list-style:none;margin:0 auto 26px;padding:0;display:grid;gap:5px;text-align:left;max-width:500px;
+    font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:13px;line-height:1.6;color:var(--dim)}
   ul.how b{color:var(--ink);font-weight:600;display:inline-block;min-width:8.2em}
   .btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
   button{font:inherit;font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:15px;letter-spacing:.08em;color:var(--ink);
@@ -55,6 +55,8 @@
   #meter{left:22px;bottom:18px;line-height:1.9}
   #meter i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;border:1px solid var(--dim);vertical-align:middle;transition:all .3s}
   #meter i.on{background:#fff;border-color:#fff;box-shadow:0 0 10px #fff}
+  #acts span{display:inline-block;margin:0 6px 6px 0;padding:1px 9px;border:1px solid var(--line);border-radius:999px;opacity:.45;transition:all .2s}
+  #acts span.on{opacity:1;background:#fff;color:#02030a;border-color:#fff;box-shadow:0 0 14px rgba(255,255,255,.8)}
   #keys{right:22px;bottom:18px;text-align:right;line-height:1.9;opacity:.75}
   #hint{left:50%;bottom:54px;transform:translateX(-50%);font-size:14px;text-align:center;white-space:nowrap;transition:opacity 1.2s}
   #flash{position:fixed;inset:0;display:grid;place-items:center;z-index:6;pointer-events:none;opacity:0;
@@ -93,8 +95,8 @@
 
 <div class="hud" id="brand">MANAZASHI</div>
 <div class="hud" id="scene"><b id="sceneJa">深海</b><span id="sceneEn">ABYSS</span></div>
-<div class="hud" id="meter"><div id="dots"></div><div id="modeLabel">—</div></div>
-<div class="hud" id="keys">P 一時停止　S 消音　Q 終了<br>SPACE 転調　C 再調整　V カメラ表示　D 診断<br>M 視線/マウス　F 全画面　H 表示切替</div>
+<div class="hud" id="meter"><div id="acts"><span data-a="voice">声</span><span data-a="smile">笑</span><span data-a="lift">昇</span><span data-a="zoom">潜</span></div><div id="dots"></div><div id="modeLabel">—</div></div>
+<div class="hud" id="keys">P 一時停止　S 消音　Q 終了<br>1 声　2 笑顔　3 上昇　4 流れ星（長押し可）<br>SPACE 転調　C 再調整　V カメラ表示　D 診断<br>M 視線/マウス　F 全画面　H 表示切替</div>
 <div class="hud" id="hint"></div>
 <div class="hud" id="ctrl"><button id="btnPause"></button><button id="btnMute"></button><button id="btnQuit"></button></div>
 <div id="pause"><div>一時停止中<small>クリックまたは P キーで再開</small></div></div>
@@ -108,9 +110,14 @@
     <h1>MANAZASHI</h1>
     <p class="sub">まなざしが、音と光になる。</p>
     <ul class="how">
-      <li><b>星を見つめる</b>星が咲いて音が鳴り、ループとして重なっていきます</li>
-      <li><b>視線を走らせる</b>目の動きがそのままメロディになります（上ほど高音）</li>
-      <li><b>ゆっくり瞬き</b>目を0.5秒ほど閉じて開くと、世界が転調します</li>
+      <li><b>星を見つめる</b>星が咲いて音が鳴り、ループとして重なります</li>
+      <li><b>視線を走らせる</b>目の動きがメロディに（上ほど高音）</li>
+      <li><b>ゆっくり瞬き</b>0.5秒ほど閉じて開くと、世界が転調します</li>
+      <li><b>ウインク</b>流れ星が飛び、通り道の星をまとめて咲かせます</li>
+      <li><b>口を開ける</b>光の声（コーラス）が響きます</li>
+      <li><b>にっこり笑う</b>金色のきらめきが舞い上がります</li>
+      <li><b>眉を上げる</b>音が1オクターブ上がり、世界が上昇します</li>
+      <li><b>顔を近づける</b>深く潜ります。離れると広がります</li>
       <li><b>6つ咲かせる</b>星座が「共鳴」し、万華鏡のクライマックスへ</li>
     </ul>
     <div class="btns">
@@ -144,12 +151,13 @@ const SCENES=[
 /* ================= state ================= */
 const S={mode:'intro',input:'mouse',gaze:{x:.5,y:.5},raw:{x:.5,y:.5},show:{x:.5,y:.5},
   move:0,speed:0,still:0,energy:0,reso:0,resoOn:false,shock:99,kick:0,level:0,roll:0,
-  scene:0,col:SCENES[0].col.map(c=>c.slice()),closed:false,closedAt:0,skipUntil:0,faceAt:0,collect:null,paused:false,muted:false,det:0,detFps:0,detN:0,detT:0,blink:0,quality:'—',cv:0,playT:99,detErr:''};
+  scene:0,col:SCENES[0].col.map(c=>c.slice()),closed:false,closedAt:0,skipUntil:0,faceAt:0,collect:null,voice:0,smile:0,lift:0,zoom:0,rise:0,wheel:0,liftOn:false,downAt:0,winkAt:0,winkCool:0,
+  ex:{jaw:0,smile:0,brow:0,dist:0,wink:0,minB:0},base:{jaw:.03,smile:.05,brow:.12,dist:0},acc:null,paused:false,muted:false,det:0,detFps:0,detN:0,detT:0,blink:0,quality:'—',cv:0,playT:99,detErr:''};
 let W=innerWidth,H=innerHeight,DPR=Math.min(2,devicePixelRatio||1);
 
 /* ================= audio ================= */
 let ac,master,dry,revSend,dlySend,dly,padFilter,padGain,padDuck,padPan,subGain,subOsc,analyser,noiseBuf;
-let padOsc=[],abuf;
+let padOsc=[],abuf,voiceGain,voiceOsc=[],voiceF=[];const K={},OCT=()=>S.lift>.5?12:0;
 const mtof=m=>440*Math.pow(2,(m-69)/12);
 const scn=()=>SCENES[S.scene];
 function degToMidi(deg,base){const sc=scn().scale;return scn().root+base+sc[((deg%5)+5)%5]+12*Math.floor(deg/5)}
@@ -177,10 +185,17 @@ function initAudio(){
   padGain=ac.createGain();padGain.gain.value=0;padDuck=ac.createGain();padPan=ac.createStereoPanner();
   padFilter.connect(padGain);padGain.connect(padDuck);padDuck.connect(padPan);padPan.connect(dry);padPan.connect(revSend);
   for(let i=0;i<4;i++)for(const det of[-9,8]){
-    const o=ac.createOscillator();o.type='sawtooth';o.detune.value=det+Math.random()*3;const g=ac.createGain();g.gain.value=.09;
-    o.connect(g);g.connect(padFilter);o.start();padOsc.push({o,i});
+    const o=ac.createOscillator();o.type='sawtooth';const d=det+Math.random()*3;o.detune.value=d;const g=ac.createGain();g.gain.value=.09;
+    o.connect(g);g.connect(padFilter);o.start();padOsc.push({o,i,d});
   }
   subOsc=ac.createOscillator();subOsc.type='sine';subGain=ac.createGain();subGain.gain.value=0;subOsc.connect(subGain);subGain.connect(dry);subOsc.start();
+  // "voice": saw chord through vowel formants, opened by the mouth
+  voiceGain=ac.createGain();voiceGain.gain.value=0;voiceGain.connect(dry);voiceGain.connect(revSend);
+  const vsrc=ac.createGain(),vib=ac.createOscillator(),vibG=ac.createGain();vib.frequency.value=5.3;vibG.gain.value=10;vib.connect(vibG);vib.start();
+  for(const[fq,q,g]of[[700,8,1],[1150,9,.7],[2800,8,.3]]){const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=fq;bp.Q.value=q;
+    const gg=ac.createGain();gg.gain.value=g;vsrc.connect(bp);bp.connect(gg);gg.connect(voiceGain);voiceF.push(bp)}
+  for(let i=0;i<3;i++){const o=ac.createOscillator();o.type='sawtooth';o.detune.value=(i-1)*6;const g=ac.createGain();g.gain.value=.3;
+    vibG.connect(o.detune);o.connect(g);g.connect(vsrc);o.start();voiceOsc.push(o)}
   applyScene(true);
   padGain.gain.setTargetAtTime(.3,ac.currentTime,2.5);
   setInterval(scheduler,25);
@@ -189,6 +204,7 @@ function applyScene(instant){
   const sc=scn(),t=ac.currentTime,tc=instant?.01:.35;
   padOsc.forEach(p=>p.o.frequency.setTargetAtTime(mtof(sc.root+12+sc.chord[p.i]),t,tc));
   subOsc.frequency.setTargetAtTime(mtof(sc.root-12),t,tc);
+  voiceOsc.forEach((o,i)=>o.frequency.setTargetAtTime(mtof(sc.root+24+sc.chord[i]),t,tc));
   dly.delayTime.setTargetAtTime(60/sc.bpm*.75,t,.05);
 }
 function out(node,pan,rv=1,dl=1){
@@ -231,6 +247,12 @@ function bass(t,f,dur){
   g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.26,t+.01);g.gain.setTargetAtTime(.0001,t+dur*.6,dur*.2);
   o.connect(lp);o2.connect(lp);lp.connect(g);g.connect(dry);o.start(t);o2.start(t);o.stop(t+dur+.4);o2.stop(t+dur+.4);
 }
+function whistle(t){
+  const o=ac.createOscillator(),g=ac.createGain();o.frequency.setValueAtTime(mtof(scn().root+60),t);
+  o.frequency.exponentialRampToValueAtTime(mtof(scn().root+24),t+.9);
+  g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.12,t+.03);g.gain.exponentialRampToValueAtTime(.0001,t+1);
+  o.connect(g);out(g,0,1.4,1);o.start(t);o.stop(t+1.05);for(let i=0;i<6;i++)hat(t+i*.05,.6-i*.07);
+}
 function whoosh(t){
   const s=ac.createBufferSource();s.buffer=noiseBuf;const bp=ac.createBiquadFilter();bp.type='bandpass';bp.Q.value=1.5;
   bp.frequency.setValueAtTime(200,t);bp.frequency.exponentialRampToValueAtTime(6000,t+.5);bp.frequency.exponentialRampToValueAtTime(300,t+1.4);
@@ -254,15 +276,16 @@ function stepAt(s,t){
   if(n>=3&&(s16===0||s16===6||s16===10))bass(t,mtof(scn().root+(s16===10&&(s>>4)%2?7:0)),.32);
   for(const st of alive){
     if(st.next>s)continue;
-    bell(t,mtof(degToMidi(st.deg,24)),.3+.6*st.life/LIFE,st.x*1.6-.8);
+    bell(t,mtof(degToMidi(st.deg,24+OCT())),.3+.6*st.life/LIFE,st.x*1.6-.8);
     events.push({t,star:st});st.life--;st.next=s+st.period;
     if(st.life<=0)events.push({t:t+.3,die:st});
   }
   if((s%2===0||reso)&&S.move>.035){
     const deg=Math.round((1-S.gaze.y)*10);
-    glass(t,mtof(degToMidi(deg,36)),.6+.4*clamp(S.move*4),S.gaze.x*1.6-.8);
+    glass(t,mtof(degToMidi(deg,36+OCT())),.6+.4*clamp(S.move*4),S.gaze.x*1.6-.8);
     events.push({t,spark:1});S.move=0;
   }
+  if(S.smile>.25&&Math.random()<S.smile*.8)glass(t,mtof(degToMidi(Math.random()*10|0,48)),.3+.3*S.smile,Math.random()*1.6-.8);
   if(reso){const ch=scn().chord;bell(t,mtof(scn().root+36+ch[(s*3)%4]+(s16>7?12:0)),.22,Math.sin(s*.9)*.7,.35)}
 }
 function transpose(){
@@ -296,10 +319,22 @@ function bloom(st){
   ripples.push({x:st.x,y:st.y,t:0,big:1});
   for(let i=0;i<26;i++)spark(st.x,st.y,2,1);
 }
-function spark(x,y,c,pow=1){
-  if(parts.length>500)return;
+function spark(x,y,c,pow=1,up=false){
+  if(parts.length>700)return;
   const a=Math.random()*6.283,v=(20+Math.random()*130)*pow;
-  parts.push({x:x*W,y:y*H,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:0,max:.5+Math.random()*1.1,c});
+  parts.push(up?{x:x*W,y:y*H,vx:(Math.random()-.5)*40,vy:-(40+Math.random()*150)*pow,g:-25,life:0,max:1+Math.random()*1.6,c}
+    :{x:x*W,y:y*H,vx:Math.cos(a)*v,vy:Math.sin(a)*v,g:8,life:0,max:.5+Math.random()*1.1,c});
+}
+const shots=[];
+function shoot(){
+  if(S.mode!=='play'||S.paused)return;
+  let dx=.5-S.show.x+(Math.random()-.5)*.6,dy=.5-S.show.y+(Math.random()-.5)*.6;const l=Math.hypot(dx,dy)||1;
+  shots.push({x:S.show.x,y:S.show.y,vx:dx/l*.55,vy:dy/l*.55,life:0});
+  if(ac)whistle(ac.currentTime+.01);
+}
+function riseFx(){
+  if(ac){const t=ac.currentTime+.01;for(let i=0;i<7;i++)glass(t+i*.05,mtof(degToMidi(i*2,36)),.7,i/3-1)}
+  for(const st of stars)for(let i=0;i<(st.alive?14:4);i++)spark(st.x,st.y,st.alive?3:1,.8,true);
 }
 
 /* ================= gaze tracking (MediaPipe) ================= */
@@ -336,7 +371,11 @@ function features(res){
     const ux=(B.x-A.x)/w,uy=(B.y-A.y)/w,dx=I.x-A.x,dy=I.y-A.y;return[(dx*ux+dy*uy)/w,(-dx*uy+dy*ux)/w]};
   const e1=eye(33,133,468),e2=eye(362,263,473);
   return{f:[yaw,pitch,eyeH,eyeV,(e1[0]+e2[0])/2,(e1[1]+e2[1])/2,lm[1].x,lm[1].y],
-    blink:(bs.eyeBlinkLeft+bs.eyeBlinkRight)/2};
+    blink:(bs.eyeBlinkLeft+bs.eyeBlinkRight)/2,
+    ex:{jaw:bs.jawOpen,smile:(bs.mouthSmileLeft+bs.mouthSmileRight)/2,
+      brow:(bs.browInnerUp+(bs.browOuterUpLeft+bs.browOuterUpRight)/2)/2,
+      dist:Math.hypot(lm[33].x-lm[263].x,lm[33].y-lm[263].y),
+      wink:bs.eyeBlinkLeft-bs.eyeBlinkRight,minB:Math.min(bs.eyeBlinkLeft,bs.eyeBlinkRight)}};
 }
 function predict(m,f){
   const z=f.map((v,i)=>(v-m.mean[i])/FSCALE[i]);z.push(1);
@@ -348,7 +387,11 @@ function detect(now){
   S.detN++;if(now-S.detT>1000){S.detFps=S.detN*1000/(now-S.detT);S.detN=0;S.detT=now}
   let res;try{res=landmarker.detectForVideo(video,now)}catch(e){S.detErr=String(e);S.det*=.92;return}
   if(!res.faceLandmarks||!res.faceLandmarks.length||!res.faceBlendshapes||!res.faceBlendshapes.length){S.det*=.92;return}
-  S.det+=(1-S.det)*.08;S.faceAt=now;const{f,blink}=features(res);S.blink=blink;
+  S.det+=(1-S.det)*.08;S.faceAt=now;const{f,blink,ex}=features(res);S.blink=blink;S.ex=ex;
+  if(S.collect&&S.acc){const a=S.acc;a.jaw+=ex.jaw;a.smile+=ex.smile;a.brow+=ex.brow;a.dist+=ex.dist;a.n++}
+  if(S.mode==='play'&&Math.abs(ex.wink)>.45&&ex.minB<.3){
+    if(!S.winkAt)S.winkAt=now;else if(now-S.winkAt>180&&now-S.winkCool>1500){S.winkCool=now;shoot()}
+  }else S.winkAt=0;
   if(blink>.6){if(!S.closed){S.closed=true;S.closedAt=now}return}
   if(S.closed){S.closed=false;const d=now-S.closedAt;S.skipUntil=now+140;if(d>450&&d<3000)transpose()}
   if(now<S.skipUntil)return;
@@ -400,6 +443,7 @@ const CAL_MSG='頭を動かさず、光る点を<br>目だけで追ってくだ�
 async function calibrate(){
   S.mode='calib';document.body.classList.remove('ui');$('#calib').classList.add('on');
   const dot=$('#dot'),msg=$('#calibMsg'),samples=[];
+  S.acc={jaw:0,smile:0,brow:0,dist:0,n:0};
   dot.style.opacity=0;dot.style.left='50%';dot.style.top='50%';
   if(!await faceCheck(msg))return;
   dot.style.opacity=1;msg.innerHTML=CAL_MSG;msg.style.opacity=1;
@@ -425,6 +469,8 @@ async function calibrate(){
     if(ac)glass(ac.currentTime+.01,mtof(62+[0,3,5,7,10,12,15,17,19,22,24,27,29][i]),.8,px*1.6-.8);
   }
   model=fit(samples);
+  if(S.acc.n){const a=S.acc;S.base={jaw:a.jaw/a.n,smile:a.smile/a.n,brow:a.brow/a.n,dist:a.dist/a.n}}   // neutral face
+  S.acc=null;
   // honest accuracy: predict each point with a model fitted on the other twelve
   let err=0;
   for(let p=0;p<pts.length;p++){
@@ -455,7 +501,13 @@ $('#btnCam').onclick=async()=>{
       :'視線エンジンを開始できませんでした（'+(e&&e.message||e)+'）。マウスでお試しください。')}
 };
 addEventListener('pointermove',e=>{if(S.input==='mouse'){S.raw.x=e.clientX/W;S.raw.y=e.clientY/H}});
-addEventListener('pointerdown',e=>{if(S.mode==='play'&&S.input==='mouse'&&!S.paused&&e.target.tagName!=='BUTTON')transpose()});
+const onBtn=e=>e.target.closest&&e.target.closest('button');
+addEventListener('pointerdown',e=>{if(S.mode==='play'&&!S.paused&&!onBtn(e))S.downAt=performance.now()});
+addEventListener('pointerup',e=>{   // short click = transpose, long press = voice
+  if(S.downAt&&performance.now()-S.downAt<250&&S.mode==='play'&&S.input==='mouse'&&!S.paused&&!onBtn(e))transpose();S.downAt=0});
+addEventListener('wheel',e=>{if(S.mode==='play')S.wheel=clamp(S.wheel-e.deltaY*.002,-1,1)},{passive:true});
+addEventListener('keyup',e=>{K[e.key]=false});
+addEventListener('blur',()=>{for(const k in K)K[k]=false;S.downAt=0});
 /* ---- mute / pause / quit ---- */
 const svg=p=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>';
 const SPK='<path class="f" d="M11 4.5 6 9H3v6h3l5 4.5z"/>';
@@ -482,7 +534,7 @@ function quit(){
   if(video.srcObject){video.srcObject.getTracks().forEach(t=>t.stop());video.srcObject=null}
   video.classList.remove('show','bad','big','ok');
   S.mode='intro';S.input='mouse';S.collect=null;stars=[];events.length=0;ripples.length=0;parts.length=0;
-  S.energy=0;S.reso=0;S.resoOn=false;S.still=0;
+  S.energy=0;S.reso=0;S.resoOn=false;S.still=0;shots.length=0;S.wheel=0;S.downAt=0;
   document.body.classList.remove('playing');document.body.classList.add('ui');
   $('#calib').classList.remove('on');$('#intro').classList.remove('off');$('#hint').textContent='';status('');
 }
@@ -494,6 +546,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&S.mode==='
 let camVisible=true,diagOn=false;
 addEventListener('keydown',async e=>{
   const k=e.key.toLowerCase();
+  if(k==='4'&&!e.repeat)shoot();
+  if('123'.includes(k)){K[k]=true;return}
   if(k===' '){e.preventDefault();transpose()}
   else if(k==='f'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}
   else if(k==='h')document.body.classList.toggle('nohud');
@@ -518,7 +572,7 @@ let fxE=euro(.9,5),fyE=euro(.9,5);
 /* ================= WebGL nebula ================= */
 const glc=$('#gl'),gl=glc.getContext('webgl',{antialias:false,alpha:false});
 const FS=`precision highp float;
-uniform vec2 uRes,uGaze;uniform float uT,uEnergy,uStill,uReso,uShock,uLevel,uRoll,uKick;uniform vec3 uA,uB,uC;
+uniform vec2 uRes,uGaze;uniform float uT,uEnergy,uStill,uReso,uShock,uLevel,uRoll,uKick,uVoice,uSmile,uRise,uZoom;uniform vec3 uA,uB,uC;
 float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);
   return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
@@ -533,7 +587,7 @@ void main(){
   float ak=abs(mod(a+uT*.05,2.*seg)-seg);
   k=mix(k,rr*vec2(cos(ak),sin(ak)),uReso);           // kaleidoscope when the constellation resonates
   q=g+k;
-  float t=uT*.05;vec2 w=q*1.7;
+  float t=uT*.05;vec2 w=q*1.7*exp(-uZoom*.5);w.y-=uRise;
   vec2 w1=vec2(fbm(w+vec2(0.,t)),fbm(w+vec2(5.2,-t*1.3)));
   vec2 w2=vec2(fbm(w+3.*w1+vec2(1.7,9.2)+t*.8),fbm(w+3.*w1+vec2(8.3,2.8)-t*.6));
   float f=fbm(w+(2.4+uEnergy*1.6)*w2);
@@ -543,6 +597,9 @@ void main(){
   float ridge=pow(1.-abs(2.*f-1.),9.);col+=uC*ridge*(.12+.5*uEnergy+.5*uReso);
   col+=uB*.22*exp(-r*r*14.)+mix(uC,vec3(1.),.5)*.35*exp(-r*r*160.);
   col+=uB*uStill*.22*(.5+.5*sin(46.*r-uT*2.5))*exp(-r*3.);
+  float ray=pow(.5+.5*sin(atan(d.y,d.x)*14.+uT*2.),3.);
+  col+=mix(uC,vec3(1.),.45)*uVoice*(ray*.55*exp(-r*2.)+.35*exp(-r*r*5.));
+  col+=vec3(1.,.72,.3)*uSmile*.22*f;
   float ring=exp(-pow((r-uShock*1.5)*8.,2.))*exp(-uShock*1.2);col+=(uC+.25)*ring*.8;
   col+=uA*2.*uKick*.25*smoothstep(.3,1.1,length(p));
   col*=1.-.55*smoothstep(.45,1.25,length(p));
@@ -558,7 +615,7 @@ let U={};
   gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,FS));gl.linkProgram(pr);gl.useProgram(pr);
   gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
   const loc=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
-  for(const n of['uRes','uGaze','uT','uEnergy','uStill','uReso','uShock','uLevel','uRoll','uKick','uA','uB','uC'])U[n]=gl.getUniformLocation(pr,n);
+  for(const n of['uRes','uGaze','uT','uEnergy','uStill','uReso','uShock','uLevel','uRoll','uKick','uVoice','uSmile','uRise','uZoom','uA','uB','uC'])U[n]=gl.getUniformLocation(pr,n);
 })();
 
 /* ================= overlay ================= */
@@ -613,8 +670,12 @@ function drawFx(t,dt){
     c2.beginPath();c2.arc(r.x*W,r.y*H,mn*(.03+(r.big?.3:.12)*(1-Math.pow(1-k,3))),0,6.283);c2.stroke()}
   // particles
   for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.life+=dt;if(p.life>=p.max){parts.splice(i,1);continue}
-    p.vx*=.985;p.vy=p.vy*.985+8*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;const k=1-p.life/p.max;
-    c2.fillStyle=css(p.c===2?cC:cB,k*.9);c2.beginPath();c2.arc(p.x,p.y,1+2.2*k,0,6.283);c2.fill()}
+    p.vx*=.985;p.vy=p.vy*.985+p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;const k=1-p.life/p.max;
+    c2.fillStyle=css(p.c===3?[1,.86,.5]:p.c===2?cC:cB,k*.9);c2.beginPath();c2.arc(p.x,p.y,1+2.2*k,0,6.283);c2.fill()}
+  // shooting stars
+  for(const h of shots){const x=h.x*W,y=h.y*H,tx=x-h.vx*W*.16,ty=y-h.vy*H*.16,g=c2.createLinearGradient(x,y,tx,ty);
+    g.addColorStop(0,css([1,1,1],.95));g.addColorStop(1,css(cC,0));c2.strokeStyle=g;c2.lineWidth=4;
+    c2.beginPath();c2.moveTo(x,y);c2.lineTo(tx,ty);c2.stroke();glow(x,y,mn*.06,[1,1,1],.9)}
   // gaze comet
   const gx=S.show.x*W,gy=S.show.y*H;
   trail.push({x:gx,y:gy});if(trail.length>26)trail.shift();
@@ -634,8 +695,13 @@ function drawFx(t,dt){
 
 /* ================= main loop ================= */
 const DWELL=.42;let lastT=0,hintT=0,dotsBuilt=false;
-const HINTS=['星をじっと見つめると、音が咲きます','視線をすばやく走らせると、メロディが生まれます',
-  'ゆっくり瞬き（またはSPACE）で、世界が転調します','星を6つ同時に咲かせると「共鳴」します','じっと一点を見つめ続けると、深みへ沈んでいきます',''];
+const HINTS_G=['星をじっと見つめると、音が咲きます','視線をすばやく走らせると、メロディが生まれます',
+  '口を開けてみてください — 光の声が響きます','にっこり笑うと、金色のきらめきが舞い上がります',
+  '眉を上げると、音が1オクターブ上昇します','ウインクすると流れ星が飛び、通り道の星が咲きます',
+  '顔を画面に近づけると深く潜り、離れると広がります','ゆっくり瞬きで、世界が転調します','星を6つ同時に咲かせると「共鳴」します',''],
+ HINTS_M=['星の上にカーソルを止めると、音が咲きます','すばやく動かすと、メロディが生まれます',
+  '長押し（または 1 キー）で、光の声が響きます','2 キーを押している間、金色のきらめきが舞います',
+  '3 キーで1オクターブ上昇、4 キーで流れ星','ホイールで深く潜る／広がる','クリックまたは SPACE で転調します','星を6つ同時に咲かせると「共鳴」します',''];
 function frame(now){
   requestAnimationFrame(frame);
   if(S.paused){lastT=now/1000;return}
@@ -675,6 +741,26 @@ function frame(now){
   if(n<=3)S.resoOn=false;else if(want)S.resoOn=true;
   S.reso+=((S.resoOn?1:0)-S.reso)*dt*1.4;
   S.shock+=dt;S.kick*=Math.exp(-dt*7);
+
+  // expressions (face) and their mouse/keyboard stand-ins
+  if(S.mode==='play'){
+    const face=S.input==='gaze'&&now-S.faceAt<600,ex=S.ex,b=S.base,hold=S.downAt&&performance.now()-S.downAt>250;
+    const tV=Math.max(K['1']||hold?1:0,face?clamp((ex.jaw-b.jaw-.1)/.3):0),
+          tS=Math.max(K['2']?1:0,face?clamp((ex.smile-b.smile-.2)/.4):0),
+          tL=Math.max(K['3']?1:0,face?clamp((ex.brow-b.brow-.15)/.3):0),
+          tZ=clamp(S.wheel+(face&&b.dist?clamp((ex.dist/b.dist-1)/.22,-1,1):0),-1,1),ek=1-Math.exp(-dt*7);
+    S.voice+=(tV-S.voice)*ek;S.smile+=(tS-S.smile)*ek;S.lift+=(tL-S.lift)*ek;S.zoom+=(tZ-S.zoom)*(1-Math.exp(-dt*3));
+    S.rise+=S.lift*dt*.9;
+    if(S.lift>.55&&!S.liftOn){S.liftOn=true;riseFx()}else if(S.lift<.3)S.liftOn=false;
+    if(S.smile>.15&&Math.random()<S.smile*45*dt)spark(Math.random(),.55+Math.random()*.5,3,.6,true);
+    if(S.voice>.2&&Math.random()<S.voice*30*dt)spark(S.show.x,S.show.y,2,1.3);
+    for(let i=shots.length-1;i>=0;i--){const h=shots[i];h.life+=dt;h.x+=h.vx*dt;h.y+=h.vy*dt;
+      spark(h.x,h.y,3,.35);spark(h.x,h.y,2,.35);
+      for(const s of stars)if(!s.alive&&s.born>.6&&Math.hypot((s.x-h.x)*W,(s.y-h.y)*H)<mn*.1)bloom(s);
+      if(h.life>2.2||h.x<-.1||h.x>1.1||h.y<-.1||h.y>1.1)shots.splice(i,1)}
+    document.querySelectorAll('#acts span').forEach(el=>{const a=el.dataset.a;
+      el.classList.toggle('on',a==='zoom'?Math.abs(S.zoom)>.3:S[a]>.4)});
+  }
   for(let i=0;i<3;i++)for(let j=0;j<3;j++)S.col[i][j]+=(scn().col[i][j]-S.col[i][j])*dt*1.8;
 
   if(ac){
@@ -685,9 +771,11 @@ function frame(now){
       if(e.die&&e.die.life<=0){for(let k=0;k<14;k++)spark(e.die.x,e.die.y,1,.6);placeStar(e.die)}
       if(e.spark){ripples.push({x:S.show.x,y:S.show.y,t:0});for(let k=0;k<6;k++)spark(S.show.x,S.show.y,2,.7)}
     }
-    padFilter.frequency.setTargetAtTime(260*Math.pow(16,clamp(1-S.gaze.y))*(1+S.energy*.6)*(1-.5*S.still),now2,.12);
+    padFilter.frequency.setTargetAtTime(260*Math.pow(16,clamp(1-S.gaze.y))*(1+S.energy*.6)*(1-.5*S.still)*(1+.6*S.zoom),now2,.12);
+    voiceGain.gain.setTargetAtTime(S.voice*1.5,now2,.07);voiceF[0].frequency.setTargetAtTime(520+380*clamp(1-S.gaze.y),now2,.1);
+    const bend=S.input==='gaze'?S.roll*50:0;padOsc.forEach(p=>p.o.detune.setTargetAtTime(p.d+bend,now2,.1));
     padPan.pan.setTargetAtTime(clamp(S.gaze.x*1.2-.6,-1,1),now2,.2);
-    subGain.gain.setTargetAtTime(.05+.3*S.still,now2,.4);
+    subGain.gain.setTargetAtTime(.05+.3*S.still+.2*Math.max(0,S.zoom),now2,.4);
     analyser.getByteTimeDomainData(abuf);let sum=0;for(let i=0;i<abuf.length;i++){const v=(abuf[i]-128)/128;sum+=v*v}
     S.level+=(Math.sqrt(sum/abuf.length)-S.level)*.3;
   }
@@ -696,13 +784,13 @@ function frame(now){
   if(S.mode==='play'){
     if(!dotsBuilt){$('#dots').innerHTML='<i></i>'.repeat(6);dotsBuilt=true}
     document.querySelectorAll('#dots i').forEach((el,i)=>el.classList.toggle('on',i<n));
-    hintT+=dt;const hi=Math.min(HINTS.length-1,hintT/9|0),h=$('#hint');
+    hintT+=dt;const HN=S.input==='gaze'?HINTS_G:HINTS_M,hi=Math.min(HN.length-1,hintT/8|0),h=$('#hint');
     const lost=S.input==='gaze'&&now-S.faceAt>1500;
     S.playT=(S.playT||0)+dt;
     const intro=S.input==='gaze'&&S.playT<9;
     const txt=lost?'顔が見つかりません — カメラに顔を向けてください'
       :intro?(S.quality==='低め'?'視線の精度が低めです。明るい場所で C を押して再調整してみてください'
-        :'白い光の輪が、あなたの視線です。見た場所についてくれば成功です（精度：'+S.quality+'）'):HINTS[hi];
+        :'白い光の輪が、あなたの視線です。見た場所についてくれば成功です（精度：'+S.quality+'）'):HN[hi];
     if(h.textContent!==txt)h.textContent=txt;
     if(S.input==='gaze'){
       const st=lost?'○ 顔を探しています（明るい場所で、顔全体をカメラに）':S.closed?'－ 目を閉じています'
@@ -728,6 +816,7 @@ function frame(now){
   gl.uniform2f(U.uRes,glc.width,glc.height);gl.uniform2f(U.uGaze,S.show.x,1-S.show.y);
   gl.uniform1f(U.uT,t);gl.uniform1f(U.uEnergy,S.energy);gl.uniform1f(U.uStill,S.still);gl.uniform1f(U.uReso,S.reso);
   gl.uniform1f(U.uShock,S.shock);gl.uniform1f(U.uLevel,S.level);gl.uniform1f(U.uRoll,S.input==='gaze'?S.roll:0);gl.uniform1f(U.uKick,S.kick);
+  gl.uniform1f(U.uVoice,S.voice);gl.uniform1f(U.uSmile,S.smile);gl.uniform1f(U.uRise,S.rise%1000);gl.uniform1f(U.uZoom,S.zoom);
   gl.uniform3fv(U.uA,S.col[0]);gl.uniform3fv(U.uB,S.col[1]);gl.uniform3fv(U.uC,S.col[2]);
   gl.drawArrays(gl.TRIANGLES,0,3);
   drawFx(t,dt);
