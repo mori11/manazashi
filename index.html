@@ -376,6 +376,10 @@ async function calibrate(){
     if(ac)glass(ac.currentTime+.01,mtof(62+[0,3,5,7,10,12,15,17,19][i]),.8,px*1.6-.8);
   }
   model=fit(samples);
+  // how well the fitted model reproduces the calibration points (share of screen)
+  let err=0;for(const s of samples){const z=s.f.map((v,i)=>(v-model.mean[i])/FSCALE[i]);z.push(1);
+    let x=0,y=0;for(let i=0;i<z.length;i++){x+=z[i]*model.wx[i];y+=z[i]*model.wy[i]}err+=Math.hypot(x-s.x,y-s.y)/samples.length}
+  S.quality=err<.07?'良好':err<.13?'ふつう':'低め';S.qualityErr=err;S.playT=0;
   $('#calib').classList.remove('on');msg.innerHTML='頭を動かさず、光る点を<br>目だけで追ってください';
   S.input='gaze';beginPlay();
 }
@@ -386,7 +390,7 @@ function beginPlay(){
   S.mode='play';$('#intro').classList.add('off');document.body.classList.remove('ui');
   $('#modeLabel').textContent=S.input==='gaze'?'● 視線コントロール':'● マウスコントロール';
   video.classList.toggle('show',S.input==='gaze'&&camVisible);
-  if(!stars.length)initStars();hintT=0;
+  if(!stars.length)initStars();hintT=0;if(S.input!=='gaze')S.playT=99;
 }
 $('#btnMouse').onclick=()=>{initAudio();S.input='mouse';beginPlay()};
 $('#btnCam').onclick=async()=>{
@@ -526,6 +530,12 @@ function drawFx(t,dt){
   if(S.mode==='play'){
     glow(gx,gy,mn*.09,cB,.22);glow(gx,gy,mn*.022,[1,1,1],.85);
     c2.strokeStyle=css([1,1,1],.45);c2.lineWidth=1.2;c2.beginPath();c2.arc(gx,gy,mn*(.03+.012*Math.sin(t*3))+S.still*mn*.03,0,6.283);c2.stroke();
+    if(S.input==='gaze'&&S.playT<25){   // label the gaze point for the first seconds
+      const a=clamp((25-S.playT)/4)*.85;c2.strokeStyle=css([1,1,1],a);c2.lineWidth=2;
+      c2.beginPath();c2.arc(gx,gy,mn*.055,0,6.283);c2.stroke();
+      c2.fillStyle=css([1,1,1],a);c2.font='13px "Hiragino Sans","Yu Gothic",sans-serif';c2.textAlign='center';
+      c2.fillText('あなたの視線',gx,gy+mn*.055+20);
+    }
   }
 }
 
@@ -594,8 +604,16 @@ function frame(now){
     document.querySelectorAll('#dots i').forEach((el,i)=>el.classList.toggle('on',i<n));
     hintT+=dt;const hi=Math.min(HINTS.length-1,hintT/9|0),h=$('#hint');
     const lost=S.input==='gaze'&&now-S.faceAt>1500;
-    const txt=lost?'顔が見つかりません — カメラに顔を向けてください':HINTS[hi];
+    S.playT=(S.playT||0)+dt;
+    const intro=S.input==='gaze'&&S.playT<9;
+    const txt=lost?'顔が見つかりません — カメラに顔を向けてください'
+      :intro?(S.quality==='低め'?'視線の精度が低めです。明るい場所で C を押して再調整してみてください'
+        :'白い光の輪が、あなたの視線です。見た場所についてくれば成功です（精度：'+S.quality+'）'):HINTS[hi];
     if(h.textContent!==txt)h.textContent=txt;
+    if(S.input==='gaze'){
+      const st=lost?'○ 顔を探しています':S.closed?'－ 目を閉じています':'● 視線を追跡中（精度：'+S.quality+'）',ml=$('#modeLabel');
+      if(ml.textContent!==st)ml.textContent=st;
+    }
   }
 
   // render
